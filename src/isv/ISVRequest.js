@@ -43,7 +43,6 @@ module.exports = class ISVRequest {
 
   async get(url = '/', header = {}) {
     log.debug('(url): ',url);
-    log.trace('(url):', options.url);
 
     const options = {
       method: 'GET',
@@ -55,9 +54,8 @@ module.exports = class ISVRequest {
   }
 
   async put(url = '/', data = {}, header = {}) {
-    log.debug('(url): ',options.url);
-    log.trace('(data): ', options.data);
-
+    log.debug('(url): ',url);
+    
     const options = {
       method: 'PUT',
       headers: Object.assign({"authorization": "Bearer "+token.get(), "content-Type": "application/json"}, header),
@@ -69,7 +67,7 @@ module.exports = class ISVRequest {
   }
 
   async putScim(url = '/', data = {}, header = {}) {
-    log.debug('(url): ',options.url);
+    log.debug('(url): ',url);
     const options = {
       method: 'PUT',
       headers: Object.assign({"authorization": "Bearer "+token.get(), "content-Type": "application/scim+json"}, header),
