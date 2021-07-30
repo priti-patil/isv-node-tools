@@ -66,3 +66,8 @@ Passed TEST  3iTH73xiM3GMwFoyFQGXKmIC8VVQIQCHL1RGxsav
 Martins-MacBook-Pro:csvFeed schmidtm$ 
 ```
 On a successfull connection the access token is displayed.  The tool automatically updates tokens as needed if the tool runs as a server or for more then 2 hours.
+
+## Tool use examples
+
+* [ISV Integration with ELK Stack](https://docs.verify.ibm.com/verify/docs/integrating-with-elk-stack)
+* [Looking up all users in ISV](https://docs.verify.ibm.com/verify/docs/looking-up-users)
