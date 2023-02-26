@@ -16,6 +16,8 @@ const ISVRequest = require('../isv/ISVRequest.js');
 const ELKRequest = require('../isv/ELKRequest.js');
 const { elk } = require('../../env.js');
 const { time } = require('console');
+var conf  = require('/Users/naveenkumar/Documents/GitHub/isv-node-tools-ibm/config.js');
+const { NotAllowedOnNonLeafError } = require('ldapjs');
 //
 let stats = {
   found: 0,
@@ -36,6 +38,7 @@ function help() {
 
 // Main Program
 async function main() {
+  try {
   log.info('start');
   stats.start = new Date();
   let uri = "/v1.0/events";
@@ -69,11 +72,8 @@ async function main() {
   let event_filter = "&event_type=" + events
   filter += event_filter
   
-  console.log(eventTypes)
-  console.log(events)
-  
-  // Temp
-  ts.last = "1663701393000";
+  // // Temp
+  // ts.last = "1663701393000";
   
   let filter2 = filter + '&from='+ ts.last; 
 
@@ -94,11 +94,10 @@ async function main() {
     list = list.response.events;
     // check if the list is empty and sleep if needed
     if (list.events.length == 0) {
-      log.debug("Pausing - ", stats.found);
-      await req.sleep(5000);
+      log.trace("Pausing for ", conf.sleep_ms, " seconds. Total ", stats.found, " documents found" )
+      await req.sleep(conf.sleep_ms);
     } else {
-      stats.found += list.events.length;
-      log.trace("Count: ", stats.found);
+
 
       backupTimeStamp = Number(list.search_after.time);
       backupTimeStamp++;
@@ -116,19 +115,34 @@ async function main() {
       }
 
       // push the data to es
-      await elkReq.postEvents(payload); 
+      let res = await elkReq.postEvents(payload); 
+      if (res.status == 200) {
+        filter2 = filter + '&from='+ backupTimeStamp;  /*filter + '&after="'+list.search_after.time+'","'+list.search_after.id+'"'*/
+        ts.last = (list.search_after.time); 
+        req.putTombstone(config.tombstone.fileName, ts); 
+
+        stats.found += list.events.length;
+      }
+
+      log.trace("Count: ", stats.found);
 
       // update the search filter 
-      filter2 = filter + '&from='+ backupTimeStamp  /*filter + '&after="'+list.search_after.time+'","'+list.search_after.id+'"'*/;
-      ts.last = (list.search_after.time); 
-      req.putTombstone(config.tombstone.fileName, ts); 
+      
+      log.trace("Pausing for ", conf.sleep_ms / 1000, " seconds");
+      await req.sleep(conf.sleep_ms);
     }
-  } // end of while
-  
-  
+  }
+   // end of while
   stats.end = new Date();
   console.log('Found ', stats.found, ' taking ', req.duration(stats.end - stats.start));
   process.exit();
+
+} catch(e) {
+  log.error("Unexpected error occured: ", e);
+} finally {
+  log.info("Trying to restart the service.")
+  process.exit(1);
+}
 }
 
 // Main Start

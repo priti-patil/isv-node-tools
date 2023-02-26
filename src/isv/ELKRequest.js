@@ -50,6 +50,19 @@ module.exports = class ELKRequest {
     return await request(options);
   }
 
+  async postMethod(url, header = {}, body) {
+    let method = "POST"
+    log.debug(method, ' : ', url);
+    var options = {
+        url: url,
+        method: method,
+        headers: Object.assign(header),
+        body: body
+    }
+    return await request(options);
+  }
+
+
   async call(url, Inbody, header = {}, method = "POST") {
     log.debug(method, ' : ', url);
     // log.trace('(body):', Inbody);
@@ -79,17 +92,11 @@ module.exports = class ELKRequest {
   // Send Events
   async postEvents(eventList) { 
     try {
-      var requestOptions = {
-        method: 'POST',
-        headers: {"Content-Type": "application/json"},
-        body: eventList,
-        redirect: 'follow'
-      };
-      fetch(this.config.elk.es + '/_bulk', requestOptions)
-        .catch(error => log.error('error', error));
+      let url = this.config.elk.es + '/_bulk'
+      let res = await this.call(url, eventList, {"Content-Type": "application/x-ndjson"});
+      return res
     } catch (e) {
-      log.error('try catch is ', e);    
-      process.exit();
+      log.error('try catch is ', e);  
     }
   }
 
@@ -108,7 +115,6 @@ module.exports = class ELKRequest {
 
 
   // Create Mapping
-  // TODO: mapping based on event-type
   async createMapping(eventType, YYYY_MM) {
     try {
       let mappingExists = await this.getMapping(eventType, YYYY_MM);
@@ -117,7 +123,7 @@ module.exports = class ELKRequest {
         return;
       }
       log.debug("Creating mapping")
-      const data = fs.readFileSync('../../resources/mappings/default-mapping.json', 'utf8');
+      const data = fs.readFileSync('./resources/mappings/default-mapping.json', 'utf8');
       let url = this.config.elk.es + "/event-" + eventType + "-" + YYYY_MM;
       let res = await this.call(url, data, {}, "PUT");
       return res.data;
@@ -127,7 +133,6 @@ module.exports = class ELKRequest {
   }
 
   // Create Index Pattern
-  // TODO: mapping based on event-type
   async createIndexPattern(eventType) {
     try {
       const data = {
@@ -148,11 +153,10 @@ module.exports = class ELKRequest {
   }
 
   // Import Dashbaord
-  // TODO: mapping based on event-type
   async importDashboard(eventType) {
     try {
       var data = new FormData();
-      data.append('file', fs.createReadStream('../../resources/dashboards/dashboard-' + eventType + '.ndjson'));
+      data.append('file', fs.createReadStream('./resources/dashboards/dashboard-' + eventType + '.ndjson'));
       let url = this.config.elk.kibana + "/api/saved_objects/_import?overwrite=true";
       let res = await this.call(url, data, {"kbn-xsrf": "true"});
       return res.data;
