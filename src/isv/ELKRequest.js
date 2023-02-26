@@ -11,6 +11,8 @@ const config = require('../../env.js');
 // added code for windows to ignore warning may not be needed on ux?
 const axios = require('axios');
 const https = require('https');
+const fetch =  require('node-fetch');
+globalThis.fetch = fetch
 const request = axios.create({
   httpsAgent: new https.Agent({  
     rejectUnauthorized: false 
@@ -20,6 +22,8 @@ const path = require('path');
 const log = require('tracer').colorConsole(config.log);
 const fs = require('fs');
 const { Resolver } = require('dns');
+const FormData = require('form-data');
+const { debug } = require('console');
 
 
 module.exports = class ELKRequest {
@@ -35,14 +39,24 @@ module.exports = class ELKRequest {
     this.config = conf;
   }
 
+  async getMethod(url, header = {}) {
+    let method = "GET"
+    log.debug(method, ' : ', url);
+    var options = {
+        url: url,
+        method: method,
+        headers: Object.assign(header),
+    }
+    return await request(options);
+  }
 
-  async post(url = '/', Inbody, header = {}) {
-    log.debug('(url): ', url);
-    log.trace('(body):', Inbody)
+  async call(url, Inbody, header = {}, method = "POST") {
+    log.debug(method, ' : ', url);
+    // log.trace('(body):', Inbody);
 
     var options = {
-        url: this.config.elk.ui + url, 
-        method: "POST",
+        url: url,
+        method: method,
         headers: Object.assign({"Content-Type": "application/json"}, header),
         data: Inbody
     }
@@ -50,15 +64,100 @@ module.exports = class ELKRequest {
     return await request(options);
   }
 
-  //sendEvents
+  // //sendEvents
+  // async postEvents(eventList) { 
+  //   try {
+  //     let res = await this.post('/_bulk', eventList);
+  //     return res.data;
+  //   } catch (e) {
+  //     log.error('try catch is ', e);    
+  //     process.exit();
+  //     return null;
+  //   }
+  // }
+
+  // Send Events
   async postEvents(eventList) { 
     try {
-      let res = await this.post('/_bulk', eventList);
-      return res.data;
+      var requestOptions = {
+        method: 'POST',
+        headers: {"Content-Type": "application/json"},
+        body: eventList,
+        redirect: 'follow'
+      };
+      fetch(this.config.elk.es + '/_bulk', requestOptions)
+        .catch(error => log.error('error', error));
     } catch (e) {
       log.error('try catch is ', e);    
       process.exit();
-      return null;
+    }
+  }
+
+
+  async getMapping(eventType, YYYY_MM) {
+    try {
+      let url = this.config.elk.es + "/event-" + eventType + '-' + YYYY_MM + '/_mapping';
+      await this.getMethod(url, {});
+      log.debug("Mapping already exists")
+      return true;
+    } catch (e) {
+      log.error("Mapping does not exists")
+      return false
+    }
+  }
+
+
+  // Create Mapping
+  // TODO: mapping based on event-type
+  async createMapping(eventType, YYYY_MM) {
+    try {
+      let mappingExists = await this.getMapping(eventType, YYYY_MM);
+      if (mappingExists) {
+        log.debug("Skipping mapping creation")
+        return;
+      }
+      log.debug("Creating mapping")
+      const data = fs.readFileSync('../../resources/mappings/default-mapping.json', 'utf8');
+      let url = this.config.elk.es + "/event-" + eventType + "-" + YYYY_MM;
+      let res = await this.call(url, data, {}, "PUT");
+      return res.data;
+    } catch (e) {
+      log.error('try catch is ', e);
+    }
+  }
+
+  // Create Index Pattern
+  // TODO: mapping based on event-type
+  async createIndexPattern(eventType) {
+    try {
+      const data = {
+        "override": true,
+        "refresh_fields": true,
+        "index_pattern": {
+           "title": "event-" + eventType + "-*",
+           "id": "index-event-" + eventType + "-*",
+           "timeFieldName":"time"
+        }
+      };
+      let url = this.config.elk.kibana + "/api/index_patterns/index_pattern";
+      let res = await this.call(url, JSON.stringify(data), {"kbn-xsrf": "true"});
+      return res.data;
+    } catch (e) {
+      log.error('try catch is ', e);
+    }
+  }
+
+  // Import Dashbaord
+  // TODO: mapping based on event-type
+  async importDashboard(eventType) {
+    try {
+      var data = new FormData();
+      data.append('file', fs.createReadStream('../../resources/dashboards/dashboard-' + eventType + '.ndjson'));
+      let url = this.config.elk.kibana + "/api/saved_objects/_import?overwrite=true";
+      let res = await this.call(url, data, {"kbn-xsrf": "true"});
+      return res.data;
+    } catch (e) {
+      log.error('try catch is ', e);
     }
   }
 

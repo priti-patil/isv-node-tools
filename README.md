@@ -13,6 +13,14 @@ The following packages are required:
 * objects-to-csv
 * tracer
 
+#
+- sudo npm install axios  
+- sudo npm install tracer --save  
+- sudo npm install objects-to-csv  
+- sudo npm install csv-parser  
+- sudo npm install qs  
+- sudo npm install ldapjs  
+#
 Additional packages may be required in the future as more commands are added.
 
 ## Installation
