@@ -41,9 +41,6 @@ async function main() {
   await req.init(config);
   await elkReq.init(config);
 
-  // Setting up the filter to process 1k events
-  ;
-
   // Creating event_type filter
   for (const event_type of config.event_types) {
 
