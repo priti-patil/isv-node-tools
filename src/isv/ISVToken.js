@@ -11,7 +11,7 @@
 const axios = require('axios');
 const https = require('https');
 const request = axios.create({
-  httpsAgent: new https.Agent({  
+  httpsAgent: new https.Agent({
     rejectUnauthorized: false
   })
 });
@@ -30,7 +30,7 @@ module.exports = class ISVToken {
 
     const options = {
       method: 'POST',
-      headers: { 
+      headers: {
         'content-type': 'application/x-www-form-urlencoded',
         Accept: 'application/json',
       },
@@ -39,9 +39,9 @@ module.exports = class ISVToken {
         'client_id': clientId,
         'client_secret': clientSecret
       }),
-      url: uri+"/v2.0/endpoint/default/token"
+      url: uri + "/v2.0/endpoint/default/token"
     }
-    
+
     try {
       let req = await request(options);
       //this.log.trace(req);
