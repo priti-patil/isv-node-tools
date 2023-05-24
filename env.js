@@ -1,17 +1,17 @@
 module.exports = {
-    tenant: {
-      ui: 'https://<your-tenant>',
-      id: '<client-id>',
-      secret: '<client-secret>',
-    },
-    log: { level: "log" },
-    elk: {
-        es: '<link-to-your-elasticsearch>',                     
-        kibana: '<link-to-your-kiabana>',                     
-        eventTypes: {}                                   
-    },
-    tombstone: {
-        fileName: '<json-tombstone-file-location>'
-    },
+  sleep_ms: 30000,
+  tombstone: {
+    fileName: "ts.json"
+  },
+  log: { level: "log" },  // log levels are log - trace - debug - info - warn - error
+  tenant: {
+    ui: "https://<tenant-id>",
+    id: "<client-id>",
+    secret: "<client-secret>",
+  },
+  elk: {
+    es: "<link-to-elasticsearch>",
+    kibana: "<link-to-kibana>",
+  },
+  event_types: []  // e.g. ["threat", "sso", ...]
 };
-// log levels are log - trace - debug - info - warn - error
