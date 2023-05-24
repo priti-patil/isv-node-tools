@@ -41,23 +41,21 @@ async function main() {
   await req.init(config);
   await elkReq.init(config);
 
-  // Creating event_type filter
+  // Creating index pattern and importing dashboard
   for (const event_type of config.event_types) {
-
-    // Creating index pattern and importing dashboard
     await elkReq.createIndexPattern(event_type);
-
-    // Import dashboards
     await elkReq.importDashboard(event_type);
   }
+
+  // Creating event type filter
   let events = '"' + config.event_types.join('","') + '"';
   let event_filter = "&event_type=" + events;
 
   let uri = "/v1.0/events";
   let filter_config = "?all_events=no&sort_order=asc&size=1000"
-  let ts = JSON.parse(req.getTombstone(config.tombstone.fileName));
-
   filter_config += event_filter;
+
+  let ts = JSON.parse(req.getTombstone(config.tombstone.fileName));
   let filter = filter_config + "&from=" + ts.last;
 
 
